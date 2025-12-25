@@ -1,0 +1,22 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS junk
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Deep Learning outputs
+runs/
+logs/
+checkpoints/
+*.pt
+*.pth
+
+# MRI datasets
+data/**/*.nii
+data/**/*.nii.gz
