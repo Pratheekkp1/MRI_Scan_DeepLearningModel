@@ -4,6 +4,14 @@ import torch.nn.functional as F
 
 
 class MRI3DNet(nn.Module):
+    """Small 3D CNN for whole-volume MRI classification.
+
+    Three conv → ReLU → max-pool blocks followed by a two-layer classifier head.
+    The head uses LazyLinear so the flattened size is inferred from the input
+    volume on the first forward pass — run one dry-run batch before building
+    the optimizer so the head's parameters are materialized and trained.
+    """
+
     def __init__(self, num_classes=2):
         super().__init__()
 
@@ -13,36 +21,13 @@ class MRI3DNet(nn.Module):
 
         self.pool = nn.MaxPool3d(2)
 
-        # Placeholder for dynamic flatten size
-        self._flattened_size = None
-
-        # Will initialize these lazily once we know volume size
-        self.fc1 = None
-        self.fc2 = None
-        self.num_classes = num_classes
-
-    def _lazy_init_fc(self, x):
-        # x is the tensor after conv layers and pooling
-        flattened = torch.flatten(x, 1).shape[1]
-        self._flattened_size = flattened
-
-        # Now create the linear layers dynamically
-        self.fc1 = nn.Linear(flattened, 128).to(x.device)
-        self.fc2 = nn.Linear(128, self.num_classes).to(x.device)
+        self.fc1 = nn.LazyLinear(128)
+        self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = self.pool(x)
-
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
-
-        x = F.relu(self.conv3(x))
-        x = self.pool(x)
-
-        # Lazy layer creation
-        if self.fc1 is None:
-            self._lazy_init_fc(x)
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv3(x)))
 
         x = torch.flatten(x, 1)
         x = F.relu(self.fc1(x))

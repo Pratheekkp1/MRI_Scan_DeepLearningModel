@@ -1,0 +1,4 @@
+torch>=2.0
+nibabel>=5.0
+tqdm
+numpy
